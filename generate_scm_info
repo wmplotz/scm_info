@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 Wilhelm M. Plotz
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+
+if [[ -n $(git status --porcelain) ]]; then
+	export ISDIRTY=YES
+else
+	export ISDIRTY=NO
+fi
+
+export SCM_VERSION=`git rev-parse --short  HEAD`
+export SCM_LONG_VERSION=`git rev-parse HEAD`
+export SCM_DESCRIPTION=`git describe`
+
+git status -s > scm_info.txt
+echo          > scm_info.hx
+
+if test $ISDIRTY = YES; then
+        echo \#define SCM_DIRTY 1 > scm_info.hx
+        echo $SCM_VERSION      | sed "s/^/\\#define SCM_VERSION \"/"        | sed s/$/\"/   >> scm_info.hx
+        echo $SCM_VERSION      | sed "s/^/\\#define SCM_VERSION_M \"/"      | sed s/$/\*\"/ >> scm_info.hx
+        echo $SCM_LONG_VERSION | sed "s/^/\\#define SCM_LONG_VERSION \"/"   | sed s/$/\"/   >> scm_info.hx
+        echo $SCM_LONG_VERSION | sed "s/^/\\#define SCM_LONG_VERSION_M \"/" | sed s/$/\*\"/ >> scm_info.hx
+        echo $SCM_DESCRIPTION  | sed "s/^/\\#define SCM_DESCRIPTION \"/"    | sed s/$/\"/   >> scm_info.hx
+        echo $SCM_DESCRIPTION  | sed "s/^/\\#define SCM_DESCRIPTION_M \"/"  | sed s/$/\*\"/ >> scm_info.hx
+        echo \#define SCM_CHANGES \"\\                                                      >> scm_info.hx
+        cat scm_info.txt     | sed s/$/\\\\n\\\\/g                                          >> scm_info.hx
+        echo \" >> scm_info.hx
+else
+        echo \#define SCM_DIRTY 0 > scm_info.hx
+        echo $SCM_VERSION      | sed "s/^/\\#define SCM_VERSION \"/"        | sed s/$/\"/ >> scm_info.hx
+        echo $SCM_VERSION      | sed "s/^/\\#define SCM_VERSION_M \"/"      | sed s/$/\"/ >> scm_info.hx
+        echo $SCM_LONG_VERSION | sed "s/^/\\#define SCM_LONG_VERSION \"/"   | sed s/$/\"/ >> scm_info.hx
+        echo $SCM_LONG_VERSION | sed "s/^/\\#define SCM_LONG_VERSION_M \"/" | sed s/$/\"/ >> scm_info.hx
+        echo $SCM_DESCRIPTION  | sed "s/^/\\#define SCM_DESCRIPTION \"/"    | sed s/$/\"/ >> scm_info.hx
+        echo $SCM_DESCRIPTION  | sed "s/^/\\#define SCM_DESCRIPTION_M \"/"  | sed s/$/\"/ >> scm_info.hx
+        echo \#define SCM_CHANGES \"\"                                                    >> scm_info.hx
+fi
+
+if diff scm_info.hx scm_info.h > /dev/null; then
+        echo File scm_info.h is up to date.
+else
+        echo Updating file scm_info.h.
+        cp scm_info.hx scm_info.h
+fi
+
+rm scm_info.hx
+rm scm_info.txt
